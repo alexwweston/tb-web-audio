@@ -40,5 +40,8 @@
   "homepage": "https://github.com/thinkingboxmedia/tb-web-audio",
   "bugs": {
     "url": "https://github.com/thinkingboxmedia/tb-web-audio/issues"
+  },
+  "dependencies": {
+    "custom-event-polyfill": "^0.3.0"
   }
 }

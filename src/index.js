@@ -1,3 +1,5 @@
+require('custom-event-polyfill');
+
 function WebAudio() {
 	const context = createAudioContext();
 	const gain = context.createGain();
@@ -10,11 +12,23 @@ function WebAudio() {
 	let volume = 1;
 	let isEnded = false;
 
-	gain.connect(analyser);
-	analyser.connect(context.destination);
+	analyser.connect(gain);
+	gain.connect(context.destination);
+	
+	this.analyser = analyser;
 
-	this.load = (src, onload = null, onended = null, autoplay = true, loop = true) => {
-		if(!(/\.(mp3|ogg|wav)$/i.test(src))) {
+	//set up events
+	this.play_event = new CustomEvent('play-web-audio');
+	this.pause_event = new CustomEvent('pause-web-audio');
+
+	this.load = (src, onload = null, onended = null, autoplay = true, loop = true, additional_src_match = null) => {
+		let matches_additional_src = false;
+		if(additional_src_match !== null){
+			const re = new RegExp(additional_src_match)
+			matches_additional_src = re.test(src)
+		}
+
+		if(!(/\.(mp3|ogg|wav)$/i.test(src)) && !matches_additional_src) {
 			const arr = src.split('.').reverse();
 			console.error(new Error('File format \'.' + arr[0] + '\' is not supported. Unable to decode audio data.'));
 			return;
@@ -55,12 +69,14 @@ function WebAudio() {
 	this.play = () => {
 		if(context.state == 'suspended') {
 			context.resume();
+			document.dispatchEvent(this.play_event)
 		}
 	};
 
 	this.pause = () => {
 		if(context.state == 'running') {
 			context.suspend();
+			document.dispatchEvent(this.pause_event)
 		}
 	};
 
@@ -191,7 +207,7 @@ function WebAudio() {
 
 	function createSource(buffer, loop, onended, time) {
 		source = context.createBufferSource();
-		source.connect(gain);
+		source.connect(analyser);
 		source.buffer = buffer;
 		source.loop = loop;
 		source.onended = () => {
